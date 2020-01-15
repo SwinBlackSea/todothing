@@ -1,5 +1,5 @@
 //windows.addEventListener
-//scrollTop
+//scrollTop:pc(document.documentElement.scrollTop)-app(document.body.scrollTop)
 <script>
 var logs = '';
 window.addEventListener('scroll', function () {
