@@ -29,5 +29,6 @@ function roughSizeOfObject( object ) {
             }
         }
     }
+    console.log('test')
     return bytes;
 }
