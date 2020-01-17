@@ -23,3 +23,21 @@ function createArray(...elements) {
 
 let arr = createArray('a', 'b', 'c');
 arr[-1] // c
+
+//validator：通过代理实现对象赋值强校验
+let validator = {
+    set: (obj, propKey, value) => {
+        if (!Number.isInteger(value)) {
+            throw new TypeError('the value should be a integer!')
+        }
+        if (value > 300) {
+            throw new RangeError('the value should not extend 300!')
+        }
+        Reflect.set(obj, propKey, value)
+        return true
+    }
+}
+let person = new Proxy({}, validator)
+person.age = ''//TypeError
+person.age = 100//correct
+person.age = 300//RangeError
