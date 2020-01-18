@@ -1,7 +1,7 @@
 /**
  * 生成对象的几种方法
  */
-//######### 通过构造函数 #########
+//######### 1.ES5通过构造函数 #########
 function Student5(name, age) {
     this.name = name;
     this.age = age;
@@ -10,7 +10,7 @@ Student5.prototype.toString = function () {
     return '(' + this.name + ',' + this.age + ')'
 }
 let stu = new Student5('lunjiawang', 26)
-//######### ES6通过class方式 #########
+//######### 2.ES6通过class方式 #########
 class Student6 {
     constructor(name, age) {
         this.name = name;
@@ -21,7 +21,7 @@ class Student6 {
         return '(' + this.name + ',' + this.age + ')'
     }
 }
-let stu = new Student(6'lunjiawang', 26)
+let stu = new Student6('lunjiawang', 26)
 typeof Student6 //=>function  类的本身就是函数
 Student6 === Student6.prototype.constructor //=>true 类本身就是指向构造函数
 
@@ -112,3 +112,118 @@ inst.prop
 //这两个函数设置在descritor中的每个属性上，因为getter&&setter是对每个属性的操作
 Object.getOwnPropertyNames(Object.getOwnPropertyDescriptor(MyClass.prototype, 'html'))//=>["get", "set", "enumerable", "configurable"]
 
+/**
+ * 类的方法名可以是动态的，采取表达式的方式
+ */
+let methodName = 'methodName'
+class Method {
+    constructor() { }
+    [methodName](value) {
+        console.log(value)
+    }
+}
+let mt = new Method()
+mt.methodName('method---name')//=>method---name
+
+
+//############# 3.通过class定义 ################
+let MyClass = class Me {
+    constructor() { }
+    doSt(value) {
+        console.log(value)
+    }
+}
+//Me只会在class的block内部有用，外部只能用MyClass，所以也可以写成下面形式
+let person = new class {
+    constructor(name) { this.name = name }
+    doSt(value) {
+        console.log(value)
+    }
+}('lunjiawang')
+person.name//=>'lunjiawang'
+
+/**
+ * 注意点：
+ * 1.ES6都是严格模式，主要是因为class和模块中都是默认执行严格模式，而ES6后面都会使用模块
+ * 2.ES6不会有class的hoist(类型提升)，主要是因为class的extend，如果有类型提升就会导致问题
+ * 3.
+ */
+let Parent = new class { }
+class Childer extends Parent {
+
+}
+//如果对class进行了类型提升就会使得Parent还没有定义就被继承导致ReferenceError
+
+/**
+ * 静态方法,只能被类调用不能被对象调用
+ * 父类的静态方法可以被子类继承
+ */
+class StaticMethod {
+    static eat(food) {
+        console.log(food)
+    }
+}
+
+/**
+ * 关于单独使用类中方法的几点问题，找不到this
+ */
+class This {
+    constructor() {
+        //method1
+        //this.doSt = this.doSt.bind(this)
+
+    }
+    doSt() {
+        this.doTh('doTh')
+    }
+    doTh(value) {
+        console.log('doTh---', value)
+    }
+}
+let t = new This()
+const { doSt } = t
+doSt()//=>Uncaught TypeError: Cannot read property 'doTh' of undefined
+//怎么办？使用bind，见上
+
+/**
+ * 实例属性新写法，直接放在类中，不需要在construtor中使用this.的方式
+ */
+class Food {
+    __name__ = 'apple'
+    constructor() { }
+    doSt(value) { console.log(value) }
+}
+/**
+ * 静态属性
+ */
+class Cub {
+    static def_name = 'cub'
+    constructor() { }
+    doSt(value) { console.log(value) }
+}
+
+/**
+ * new.target 一般在constructor中调用，返回一个constructor
+ */
+function CL(name, age) {
+    if (new.target === CL) {
+        this.name = name
+        this.age = age
+    } else {
+        throw new Error('obj must be created by new keyword!')
+    }
+}
+//or
+class CL {
+    constructor(name, age) {
+        if (new.target === CL) {
+            this.name = name
+            this.age = age
+        } else {
+            throw new Error('obj must be created by new keyword!')
+        }
+    }
+}
+//test
+let cl = new CL('lunjiawang', 12)
+CL.call(cl, 'sw', 12)
