@@ -1,5 +1,6 @@
 # HTTP CORS
-
+# https://www.html5rocks.com/en/tutorials/cors/
+# flowchat:  https://www.html5rocks.com/static/images/cors_server_flowchart.png
 > CORS：Cross-Origin Resource Sharing
 
 CORS出现前，跨源时能够通过 script 或者 image 标签触发 GET 请求或通过表单发送一条 POST 请求，但这两种请求 HTTP 头信息中都不能包含任何自定义字段。
