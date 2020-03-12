@@ -1,0 +1,70 @@
+//图的数据结构：顶点+边，一般认为顶点表示实体，边表示关系
+//图相对于关系结构或者文档结构有什么优势？文档结构不太适合多-多、多-一，关系结构不适合复杂的多-多、多-一，文档结构擅长一-多且属于
+//无模式（支持动态更新数据结构）以及大多数记录之间不存在关系，关系结构擅长较为简单的多-多、多-一，可以使用声明式联合查询，图适合复杂频繁的多-多关系查询
+
+//以下是Cypher图数据库描述的一张图,NAmerica、USA、Idaho、Lucy都是顶点，[:WITHIN]、[:BORN_IN]都是边
+CREATE
+	(NAmerica:Location {name:'North America', type:'continent'}),
+	(USA:Location      {name:'United States', type:'country'  }),
+	(Idaho:Location    {name:'Idaho',         type:'state'    }),
+	(Lucy:Person       {name:'Lucy' }),
+	(Idaho) -[:WITHIN]->  (USA)  -[:WITHIN]-> (NAmerica),
+	(Lucy)  -[:BORN_IN]-> (Idaho)
+//这张图描述了Lucy出生于Idaho洲美国NAmerica
+
+//从图中查找所有从美国移民到欧洲去的人姓名
+MATCH
+	(person) -[:BORN_IN]->  () -[:WITHIN*0..]-> (us:Location {name:'United States'}),
+	(person) -[:LIVES_IN]-> () -[:WITHIN*0..]-> (eu:Location {name:'Europe'})
+RETURN person.name
+//解读查询如下：
+/*
+找到满足以下两个条件的所有顶点（称之为person顶点）：
+person顶点拥有一条到某个顶点的BORN_IN出边。从那个顶点开始，沿着一系列WITHIN出边最终到达一个类型为Location，name属性为United States的顶点。
+person顶点还拥有一条LIVES_IN出边。沿着这条边，可以通过一系列WITHIN出边最终到达一个类型为Location，name属性为Europe的顶点。
+对于这样的Person顶点，返回其name属性。
+*/
+
+//使用关系结构进行查询
+WITH RECURSIVE
+  -- in_usa 包含所有的美国境内的位置ID
+    in_usa(vertex_id) AS (
+    SELECT vertex_id FROM vertices WHERE properties ->> 'name' = 'United States'
+    UNION
+    SELECT edges.tail_vertex FROM edges
+      JOIN in_usa ON edges.head_vertex = in_usa.vertex_id
+      WHERE edges.label = 'within'
+  ),
+  -- in_europe 包含所有的欧洲境内的位置ID
+    in_europe(vertex_id) AS (
+    SELECT vertex_id FROM vertices WHERE properties ->> 'name' = 'Europe'
+    UNION
+    SELECT edges.tail_vertex FROM edges
+      JOIN in_europe ON edges.head_vertex = in_europe.vertex_id
+      WHERE edges.label = 'within' ),
+
+  -- born_in_usa 包含了所有类型为Person，且出生在美国的顶点
+    born_in_usa(vertex_id) AS (
+      SELECT edges.tail_vertex FROM edges
+        JOIN in_usa ON edges.head_vertex = in_usa.vertex_id
+        WHERE edges.label = 'born_in' ),
+
+  -- lives_in_europe 包含了所有类型为Person，且居住在欧洲的顶点。
+    lives_in_europe(vertex_id) AS (
+      SELECT edges.tail_vertex FROM edges
+        JOIN in_europe ON edges.head_vertex = in_europe.vertex_id
+        WHERE edges.label = 'lives_in')
+
+  SELECT vertices.properties ->> 'name'
+  FROM vertices
+    JOIN born_in_usa ON vertices.vertex_id = born_in_usa.vertex_id
+    JOIN lives_in_europe ON vertices.vertex_id = lives_in_europe.vertex_id;
+/*
+首先，查找name属性为United States的顶点，将其作为in_usa顶点的集合的第一个元素。
+从in_usa集合的顶点出发，沿着所有的with_in入边，将其尾顶点加入同一集合，不断递归直到所有with_in入边都被访问完毕。
+同理，从name属性为Europe的顶点出发，建立in_europe顶点的集合。
+对于in_usa集合中的每个顶点，根据born_in入边来查找出生在美国某个地方的人。
+同样，对于in_europe集合中的每个顶点，根据lives_in入边来查找居住在欧洲的人。
+最后，把在美国出生的人的集合与在欧洲居住的人的集合相交。
+*/
+//同一个查询，用图只需要4行，但是使用sql需要29行，说明不同的数据模型是为了不同的应用场景而设计的。选择适合应用程序的数据模型非常重要
